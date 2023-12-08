@@ -23,8 +23,6 @@ public class Classroom {
   }
 
 
-
-
   public int getClassroomId() {
     return classroomId;
   }

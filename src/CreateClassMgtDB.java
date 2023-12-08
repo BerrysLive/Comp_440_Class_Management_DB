@@ -52,6 +52,13 @@ public class CreateClassMgtDB {
 
             buildTables(conn);
 
+            createListAllCoursesProcedure(conn);
+            createListAllDepartmentsProcedure(conn);
+            createCourseProcedure(conn);
+            createInstructorProcedure(conn);
+
+            addInstructor(conn,1, "Senhua Yu");
+
 
             do {
                 int mainMenuChoice = printMainMenu();
@@ -138,7 +145,7 @@ public class CreateClassMgtDB {
                     course_name = keyBoard.nextLine();
                     System.out.println("Enter Course Description: ");
                     course_description = keyBoard.nextLine();
-                    addCourse(conn, instructor_id, course_name, course_description);
+                    createCourse(conn, instructor_id, course_name, course_description);
                     break;
 
                 case 2:
@@ -158,9 +165,6 @@ public class CreateClassMgtDB {
                     break;
             }
         }
-    }
-
-    private static void addCourse(final Connection conn, final int instructorId, final String courseName, final String courseDescription) {
     }
 
     private static void addBuildingTuple(final Connection conn, List<String> data){
@@ -247,6 +251,29 @@ public class CreateClassMgtDB {
 
 
     // Create Insertion Procedure
+    private static void addInstructor(final Connection conn, int departmentId, String instructorName) {
+        try (CallableStatement stmt = conn.prepareCall("{CALL AddInstructor(?, ?)}")) {
+            stmt.setInt(1, departmentId);
+            stmt.setString(2, instructorName);
+            stmt.execute();
+            //System.out.println("Instructor added successfully: " + instructorName + " (Instructor_ID: " + generatedInstructorId + ")");
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+        private static void createCourse(final Connection conn, int instructorId, String courseTitle, String subject)  {
+        try (CallableStatement stmt = conn.prepareCall("{CALL CreateCourse(?, ?, ?)}")) {
+            stmt.setInt(1, instructorId);
+            stmt.setString(2, courseTitle);
+            stmt.setString(3, subject);
+            stmt.execute();
+            //System.out.println("Course created successfully.");
+        }catch(SQLException e){
+           System.out.println("Error Message:" + e.getMessage());
+           e.printStackTrace();
+        }
+    }
 
     private static void createListAllInstructorsProcedure(final Connection conn) {
         String createProcedureSQL =
@@ -273,13 +300,13 @@ public class CreateClassMgtDB {
 
         try (Statement stmt = conn.createStatement()) {
             stmt.execute(createListAllCoursesProcedure);
-            //System.out.println("Stored procedure 'ListAllCourses' created successfully.");
+            System.out.println("Stored procedure 'ListAllCourses' created successfully.");
         } catch (SQLException e) {
             throw new RuntimeException();
         }
     }
 
-    /*private static void createInstructorProcedure(final Connection conn)  {
+    private static void createInstructorProcedure(final Connection conn)  {
 
         String createProcedure =
                 "CREATE PROCEDURE AddInstructor(IN department_id INT,IN name VARCHAR(50)) " +
@@ -290,7 +317,7 @@ public class CreateClassMgtDB {
             executeUpdate(conn, createProcedure);
             // System.out.println("Add Instructor procedure has been created.");
 
-    }*/
+    }
 
    /*private static void createBuildingProcedure(final Connection conn)  {
         String createProcedure =
@@ -327,6 +354,12 @@ public class CreateClassMgtDB {
         executeUpdate(conn, createProcedure);
         //System.out.println("Create Course Procedure has been created.");
     }
+
+
+
+
+
+
 
     // Drop All Tables Function
 
@@ -466,17 +499,6 @@ public class CreateClassMgtDB {
               createCourse(conn,2,"Comp 110", "Introduction to Algorithms and Programming");
               createCourse(conn,2,"Comp 122", "Computer Architecture and Assembly Language");*/
 
- /* private static void addInstructor(final Connection conn, int departmentId, String instructorName) {
-        try (CallableStatement stmt = conn.prepareCall("{CALL AddInstructor(?, ?)}")) {
-            stmt.setInt(1, departmentId);
-            stmt.setString(2, instructorName);
-            stmt.execute();
-            //System.out.println("Instructor added successfully: " + instructorName + " (Instructor_ID: " + generatedInstructorId + ")");
-        }
-        catch(SQLException e){
-            throw new RuntimeException(e);
-        }
-    }*/
 
   /*  private static void createBuilding(final Connection conn)  {
         try (CallableStatement stmt = conn.prepareCall("{CALL AddBuilding(?)}")) {
@@ -499,15 +521,4 @@ public class CreateClassMgtDB {
         }
     }*/
 
-   /* private static void createCourse(final Connection conn, int instructorId, String courseTitle, String subject)  {
-        try (CallableStatement stmt = conn.prepareCall("{CALL CreateCourse(?, ?, ?)}")) {
-            stmt.setInt(1, instructorId);
-            stmt.setString(2, courseTitle);
-            stmt.setString(3, subject);
-            stmt.execute();
-            //System.out.println("Course created successfully.");
-        }catch(SQLException e){
-           System.out.println("Error Message:" + e.getMessage());
-           e.printStackTrace();
-        }
-    }*/
+

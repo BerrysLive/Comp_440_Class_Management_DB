@@ -70,6 +70,4 @@ public class Request implements Comparable<Request> {
     return this.startTime.compareTo(other.startTime);
   }
 
-
-
 }

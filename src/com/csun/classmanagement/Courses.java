@@ -17,7 +17,6 @@ public class Courses {
     this.courseId = courseId;
   }
 
-
   public long getInstructorId() {
     return instructorId;
   }
@@ -26,7 +25,6 @@ public class Courses {
     this.instructorId = instructorId;
   }
 
-
   public String getCourseTitle() {
     return courseTitle;
   }
@@ -34,7 +32,6 @@ public class Courses {
   public void setCourseTitle(String courseTitle) {
     this.courseTitle = courseTitle;
   }
-
 
   public String getSubject() {
     return subject;

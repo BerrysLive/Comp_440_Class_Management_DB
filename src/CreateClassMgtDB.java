@@ -1,12 +1,16 @@
-import java.io.IOException;
-import java.nio.file.Paths;
+import com.csun.classmanagement.Scheduler;
+
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+import java.util.Scanner;
 
 public class CreateClassMgtDB {
     private static final String DB_URL = "jdbc:mysql://localhost:3306/cms";
     private static final Scanner keyBoard = new Scanner(System.in);
-
+    private static Scheduler scheduler;
+    private static Connection connect;
     /*private enum MenuOption {
         FACULTY_MENU(1),
         END(2);
@@ -20,7 +24,6 @@ public class CreateClassMgtDB {
 
     public static void main(String[] args) {
 
-
         Properties connectionProps = new Properties();
         connectionProps.put("user", "root");
         connectionProps.put("password", "berrysroot45!"); //substitue your pw for *
@@ -33,21 +36,20 @@ public class CreateClassMgtDB {
         //Building bldg = new Building();
         //Classroom room = new Classroom();
 
-
         //look @ path for order of String[]
-        for (String tmp: path) {
+        /*for (String tmp: path) {
             for (int i = 0; i < path.length; i++){
                 data = loadData(tmp);
                 processData(data);
             }
-        }
-
+        }*/
 
         try (Connection conn = DriverManager.getConnection(DB_URL, connectionProps)) {
             executeUpdate(conn, "DROP DATABASE cms");
             executeUpdate(conn, "CREATE DATABASE cms");
             executeUpdate(conn, "USE cms");
 
+            connect = conn;
             conn.setAutoCommit(false); // Start transaction
 
             buildTables(conn);
@@ -56,8 +58,13 @@ public class CreateClassMgtDB {
             createListAllDepartmentsProcedure(conn);
             createCourseProcedure(conn);
             createInstructorProcedure(conn);
+            createDepartmentProcedure(conn);
+            createBuildingProcedure(conn);
 
+            //pre genenerate a Teacher, Building, Department
             addInstructor(conn,1, "Senhua Yu");
+            addBuilding(conn,"Jacaranda", 1);
+            addDepartment(conn, "Computer Science");
 
 
             do {
@@ -79,12 +86,7 @@ public class CreateClassMgtDB {
         }
     }
 
-    private static void processData(final List data) {
-
-
-    }
-
-    private static List<String> loadData(String path) {
+    /*private static List<String> loadData(String path) {
 
         String[] tmpArr = new String[path.length()];
 
@@ -102,7 +104,7 @@ public class CreateClassMgtDB {
         }
 
         return Arrays.asList(tmpArr);
-    }
+    }*/
 
     // User Input Functions:
     private static int printMainMenu(){
@@ -119,10 +121,11 @@ public class CreateClassMgtDB {
         System.out.println(
                 """
                         1) Create course
-                        2) List all courses
-                        3) List all instructors
-                        4) List all departments
-                        5) Return
+                        2) Assign Course a classroom and time
+                        3) List all courses
+                        4) List all instructors
+                        5) List all departments
+                        6) Return
                         """);
         return keyBoard.nextInt();
     }
@@ -134,6 +137,7 @@ public class CreateClassMgtDB {
             int instructor_id;
             String course_description;
             String course_name;
+            int room_num;
 
             switch (facultyMenuChoice) {
                 case 1:
@@ -147,17 +151,21 @@ public class CreateClassMgtDB {
                     course_description = keyBoard.nextLine();
                     createCourse(conn, instructor_id, course_name, course_description);
                     break;
-
                 case 2:
+                    System.out.println("Enter room number");
+                    room_num = keyBoard.nextInt();
+
+                    break;
+                case 3:
                     listAllCourses(conn);
                     break;
-                case 3: // list all instructor's logic
+                case 4: // list all instructor's logic
                     listAllInstructors(conn);
                     break;
-                case 4: // List all Departments logic
+                case 5: // List all Departments logic
                     listAllDepartments(conn);
                     break;
-                case 5:
+                case 6:
                     inFacultyMenu = false; // Exit the faculty menu and return to the main menu
                     break;
                 default:
@@ -167,7 +175,7 @@ public class CreateClassMgtDB {
         }
     }
 
-    private static void addBuildingTuple(final Connection conn, List<String> data){
+    /*private static void addBuildingTuple(final Connection conn, List<String> data){
         try {
             Statement stmt = conn.createStatement();
             String building_name;
@@ -184,11 +192,33 @@ public class CreateClassMgtDB {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+    }
+    */
+    // Using Insertion Procedure
 
+    private static void addDepartment(final Connection conn, String departmentName) {
+        try (CallableStatement stmt = conn.prepareCall("{CALL AddDepartment(?)}")) {
+            stmt.setString(1, departmentName);
+            stmt.execute();
+            System.out.println("Department added successfully: " + departmentName);
+        } catch (SQLException e) {
+            System.out.println("SQL Error: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
-
-    // Using Insertion Procedure
+    private static void addBuilding(final Connection conn, String buildingName, int department_id) {
+        try (CallableStatement stmt = conn.prepareCall("{CALL AddBuilding(?)}")) {
+            // Since the building_id is auto-incremented, we do not need to set it here
+            stmt.setString(1, buildingName);
+            stmt.setInt(2, department_id);
+            stmt.execute();
+            System.out.println("Building added successfully: " + buildingName);
+        } catch (SQLException e) {
+            System.out.println("SQL Error: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 
     private static void listAllInstructors(final Connection conn)  {
         try (CallableStatement stmt = conn.prepareCall("{CALL ListAllInstructors()}")) {
@@ -237,19 +267,6 @@ public class CreateClassMgtDB {
         }
     }
 
-    // Create Schedule Algorithm
-    // Instructor puts in request to create a course
-    // next they choose a room and a time they want the room
-    // if the room is available at their requested time that time is now blacked out for other people
-    // otherwise show the instructor the next available time for the room
-    // if there is no available time left then offer them a different room
-
-    // Polynomial time
-    // interval scheduling algorithm
-
-    // Test Edit for github bot
-
-
     // Create Insertion Procedure
     private static void addInstructor(final Connection conn, int departmentId, String instructorName) {
         try (CallableStatement stmt = conn.prepareCall("{CALL AddInstructor(?, ?)}")) {
@@ -275,7 +292,7 @@ public class CreateClassMgtDB {
         }
     }
 
-    private static void createListAllInstructorsProcedure(final Connection conn) {
+    /*private static void createListAllInstructorsProcedure(final Connection conn) {
         String createProcedureSQL =
                 "CREATE PROCEDURE ListAllInstructors() " +
                         "BEGIN " +
@@ -289,7 +306,7 @@ public class CreateClassMgtDB {
             throw new RuntimeException(e);
         }
     }
-
+    */
 
     private static void createListAllCoursesProcedure(final Connection conn)  {
         String createListAllCoursesProcedure =
@@ -316,25 +333,23 @@ public class CreateClassMgtDB {
 
             executeUpdate(conn, createProcedure);
             // System.out.println("Add Instructor procedure has been created.");
-
     }
 
-   /*private static void createBuildingProcedure(final Connection conn)  {
+   private static void createBuildingProcedure(final Connection conn)  {
         String createProcedure =
                 """
-                        CREATE PROCEDURE AddBuilding(IN building_name VARCHAR(50))
+                        CREATE PROCEDURE AddBuilding(building_id int AUTO_INCREMENT, IN building_name VARCHAR(50), IN department_id int)
                         BEGIN
-                        INSERT INTO building (building_name) VALUES (building_name);
+                        INSERT INTO building (building_name, department_id) VALUES (building_name, department_id);
                         END""";
 
         executeUpdate(conn, createProcedure);
         //System.out.println("Add Building procedure has been created.");
     }
-*/
 
     private static void createDepartmentProcedure(final Connection conn)  {
         String createProcedure =
-                "CREATE PROCEDURE AddDepartment(IN department_name VARCHAR(50)) " +
+                "CREATE PROCEDURE AddDepartment(department_id int AUTO_INCREMENT, IN department_name VARCHAR(50)) " +
                         "BEGIN " +
                         "INSERT INTO department (department_name) VALUES (department_name); " +
                         "END";
@@ -354,12 +369,6 @@ public class CreateClassMgtDB {
         executeUpdate(conn, createProcedure);
         //System.out.println("Create Course Procedure has been created.");
     }
-
-
-
-
-
-
 
     // Drop All Tables Function
 
@@ -396,7 +405,6 @@ public class CreateClassMgtDB {
                                       FOREIGN KEY (classroom_id) REFERENCES classroom(classroom_id)) AUTO_INCREMENT=1000""";
         executeUpdate(conn, sql_stat);
     }
-
 
     // Create Table Functions
 
@@ -484,7 +492,6 @@ public class CreateClassMgtDB {
         }
     }
 }
-
 
    /*// Manual Test
             createBuilding(conn);
